@@ -1,0 +1,31 @@
+//Authors: Cameron Kadre CS441, Gail Kinder CS441, Spencer Ford CS441
+// Benchmark Multiply_2Int
+//This function multiplies two integers together. 
+//The first integer is given at address 0xA0. The second integer is given at address 0xA1. 
+//Address 0xA2 stores the decimal value 001. Address 0xA3 stores the running total, and its initial value is 0.
+//Version optimized for time
+00  LOAD 0xA1
+01  JZ 08
+02  SUB 0xA2
+03  STORE 0xA1
+04  LOAD 0xA0
+05  ADD 0xA3
+06  STORE 0xA3
+07  JMP 00
+08  HALT
+
+// Multiplies a given a integer by another integer
+// Starting data stored in addresses 0xFD and 0xFE
+//      0xFD and 0xFE have signed integer values
+//      0xFF starts at 000, the results from the sum of 0xFD and 0xFE will be stored
+//Version optimized for space
+00  LOAD 0xFD       //Load Initial Value
+01  ADD 0xFE        //Add multiplier
+02  JN 07           //If 0 Jumps to 14 where the value 0 is stored in 0xFF
+03  STORE 0xFD      //Stores new sum
+04  LOAD 0xFF
+05  STORE 0xFF
+06  JMP 00         //Jumps to 07 and loops through program
+07  LOAD 0xFF       
+08  STORE 0         //Store 0 as the sum results
+09  HALT

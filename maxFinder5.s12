@@ -1,0 +1,25 @@
+// maxFinder5.s12 finds the maximum of 5 signed integers and stores result in location after the integers
+// Starting Data stored in addresses 80 through 84 and stores a
+//     80 through 84 have signed integer values
+//     85 starts at 000, running max. will get the value stored at address 80 in second instruction
+//     A0 081 -- address of the next number to compare to the running max
+//     A1 004 -- how many numbers to compare to the initial max (n-1)
+//     A2 001 -- stores the constant decimal 1 to make increment/decrement easy
+// instructions begin at address 00
+
+LOAD 80  
+STORE 85 
+LOADI A0 
+SUB 85  
+JN 07
+LOADI A0 
+STORE 85 
+LOAD A1  
+SUB A2 
+STORE A1 
+JZ 0F 
+LOAD A0     
+ADD A2      
+STORE A0    
+JMP 02 
+HALT 
