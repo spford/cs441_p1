@@ -89,10 +89,9 @@ public class S12_IL implements S12_IL_Interface {
     @Override
     public String[] getProcessorState() {
         String[] out = {
-            "PC=" + toHex8(PC),     //Change from int to string
-            "ACC=" + toBin12(ACC),  //Change from int to string
-            "COUNT=" + Integer.toString(COUNT), //Us in build function
-            "HALTED=" + halted
+            "Cycles Executed: " + Integer.toString(COUNT), //Us in build function
+            "PC: " + toHex8(PC), 
+            "ACC: " + toBin12(ACC)
         }; 
         return out;
     }

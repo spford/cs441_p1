@@ -61,7 +61,7 @@ public class S12_Sim {
             System.exit(2);
         }
 
-        if (maxCycles == null) { maxCycles = 100; } //set max to 100 unless specified - arbitrary
+        if (maxCycles == null) { maxCycles = 10000; } //set max to 100 unless specified - arbitrary
         int steps = 0;
         while (!sim.isHalted() && (maxCycles < 0 || steps < maxCycles)) {
             sim.update();
@@ -72,7 +72,8 @@ public class S12_Sim {
             System.out.println(s);
         }
 
-        if (baseName != null) {
+        if (baseName == null) {
+            baseName = memFile;
             boolean m0k = sim.writeMem(baseName + ".mem");
             boolean t0k = sim.writeTrace(baseName + ".trace");
             System.out.println("writeMem ->" + (baseName + "_mem") + " : " + m0k);
