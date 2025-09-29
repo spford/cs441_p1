@@ -7,6 +7,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Authors: Spencer Ford, Gail Kinder, Cameron Kadre
+ * This is our implementation of the SIM_IL_Interface. It uses an
+ * int[256] to represent the memory. a List<String> that hols the 
+ * trace(i.e. what each count has done). The point is to simulate
+ * a simple chip and play with assembly language and bit arithmetic.
+ * A few functions were added for readablility such as bit arithmetic ones.
+ */
+
 public class S12_IL implements S12_IL_Interface {
 
     private int PC, ACC, COUNT;
@@ -28,7 +37,8 @@ public class S12_IL implements S12_IL_Interface {
 
     /**
      * initializeMem reads in the plain text file and instantiates the memory array.
-     * It does this by opening a BufferedReader
+     * It does this by opening a BufferedReader uses nextDataLine() to grab one line
+     * at a time. 
      * 
      * @param filename of memory to be read in
      * @return true if memory successfully parsed and instantiated
@@ -48,23 +58,21 @@ public class S12_IL implements S12_IL_Interface {
              String[] hp = header.split("\\s+"); // "\\s+" - this regex finds any whitespace
             if(hp.length !=2) throw new IllegalArgumentException("Header format wrong");
 
-            PC = parseBin8(hp[0]);
-            ACC = parseBin12(hp[1]);
+            PC = parseBin8(hp[0]);  //PC is and 8-bit value -> call parseBin8()
+            ACC = parseBin12(hp[1]);//ACC is a 12-bit address->call parseBin12()
 
 
             String line;
-            int linesRead = 0;
 
-            while ((line = nextDataLine(br)) != null) {
-                String[] parts = line.split("\\s+");                
+            while ((line = nextDataLine(br)) != null) {     //Itterate while hasNextLine()
+                String[] parts = line.split("\\s+");  //Split into [0] = address, [1] = instruction               
                 if(parts.length != 2) {
                     throw new IllegalArgumentException("mem line format wrong" + line +"'");
                 }
-                int addr = parseHexByte(parts[0]);
-                int word = parseBin12(parts[1]);
+                int addr = parseHexByte(parts[0]);  //Change hex addr to int[0-256]
+                int word = parseBin12(parts[1]);    //Mask 12-bit word value into an int
 
-                mem[addr & 0xFF] = word & 0xFFF;
-                linesRead++;
+                mem[addr & 0xFF] = word & 0xFFF;    //addr & 0xFF -> Mask for 8-bit mem address [0-256] & word & 0xFFF store 12-bits of the instruction at that address
             }
             return true;
         } catch (Exception e) {
@@ -75,31 +83,28 @@ public class S12_IL implements S12_IL_Interface {
 
      /**
      * Returns state of the registers in the machine
-     * This is one place to add a javadoc in your implementation.
-     * Specifying in what order the register values are returned
-     * 
+     * out[0] = PC, out[1] = ACC, out[2] == COUNT (cycle), out[3] = halted (String)
      * @return String array of register values
      */
     @Override
     public String[] getProcessorState() {
         String[] out = {
-            "PC=" + toHex8(PC),
-            "ACC=" + toBin12(ACC),
-            "COUNT=" + Integer.toString(COUNT),
+            "PC=" + toHex8(PC),     //Change from int to string
+            "ACC=" + toBin12(ACC),  //Change from int to string
+            "COUNT=" + Integer.toString(COUNT), //Us in build function
             "HALTED=" + halted
-        };
+        }; 
         return out;
     }
 
     /**
-     * String form of the current state of the memory (e.g. each line is hex
-     * address, space, binary word)
-     * 
+     * Builds a string - address(hex), data at address(bin)
+     * This was used to write debug information.
      * @return string representation of memory
      */
     @Override
     public String getMemState() {
-        StringBuilder sb = new StringBuilder(256 * 6);
+        StringBuilder sb = new StringBuilder(256 * 6);  //Use build in StringBuilder to make list of all 256 addresses
         for(int addr = 0; addr < 256; addr++) {
             sb.append(toHex8(addr)).append(' ').append(toBin12(mem[addr])).append('\n');
         }
@@ -107,24 +112,31 @@ public class S12_IL implements S12_IL_Interface {
     }
 
      /**
-     * execute one cycle of the machine
+     * This changes the state of the machine based on the machine instruction.
+     * It takes the all the part of the current position marked with PC,
+     * and breaks it into pieces to be processed. It's then sent through
+     * a big switch statement that maps each opcode and these opcodes
+     * changes the machine state based on what opcode was found.
      * 
      * @return String representation of the instruction executed (binary)
      */
     @Override
     public String update() {
-        if (halted) return "000000000000";
+        if (halted) {
 
-        int pcBefore = PC & 0xFF;
-        int instr = mem[pcBefore] & 0xFFF;
-        PC = (PC + 1) & 0xFF;
+            return "000000000000";
+        }
 
-        int opcode = (instr >>> 8) & 0xF;
-        int X = instr & 0xFF;
-        int addr = X & 0xFF;
-        int mval = mem[addr] & 0xFFF;
+        int pcBefore = PC & 0xFF;   //PC masked to 8-bit
+        int instr = mem[pcBefore] & 0xFFF;  //instr masked at mem[pc] for 12-bits (word siz)
+        PC = (PC + 1) & 0xFF;   //Advance PC to next instruction -> mask for 12-bits
 
-        String mnem = null;
+        int opcode = (instr >> 8) & 0xF;   //Parse opcode: take instr >>>(bit shift) 8bits in 12-8 = 4bit opbode -> maske for only 4-bits
+        int X = instr & 0xFF;              //Parse X: mask instruction for last 8-bits
+        int addr = X & 0xFF;               //Parse addr: X - instruction; masked for last 8-bits
+        int mval = mem[addr] & 0xFFF;      //Grab value at mem[addr] and mask for 12-bit
+
+        String mnem = null;                //This will hold + build a string for printing to files or stdout(debug)
 
         switch (opcode) {
             case  0x0: //JMP X
@@ -132,7 +144,7 @@ public class S12_IL implements S12_IL_Interface {
                 mnem = String.format("JMP %02X", addr);
                 break;
 
-            case 0x1:  //JN X
+            case 0x1:  //JN X 
                 if (isNeg12(ACC)) {
                     PC = addr;
                     mnem = String.format("JN %2X", addr);
@@ -202,8 +214,9 @@ public class S12_IL implements S12_IL_Interface {
     }
 
      /**
-     * Write out the memFile associated with the current state of the simulation
-     * 
+     * Takes in af filename argument and writes the current state of every
+     * mem address to the file. It is written as follows
+     * addr(hex) data(bin)
      * @param filename - name of memFile to create
      * @return true if successful file creation, false otherwise
      */
@@ -231,7 +244,8 @@ public class S12_IL implements S12_IL_Interface {
     }
 
     /**
-     * 
+     * Writes the entire trace stack line by line into 
+     * the file provided. It's added to and updated in the update().
      * @param filename - name of trace file to create
      * @return true if successfully written, else false
      */
@@ -249,6 +263,10 @@ public class S12_IL implements S12_IL_Interface {
         }
     }
 
+    /**
+     * @param br - bufferedreader
+     * @return String - next line in the mem file
+     */
     private static String nextDataLine(BufferedReader br) throws IOException {
         String line;
         while ((line = br.readLine()) != null) {
@@ -261,6 +279,13 @@ public class S12_IL implements S12_IL_Interface {
         return null;
     }
 
+    /**
+     * This is a helper function that allows for mem files with 
+     * inline comments. It'll remove inline comments and give back just
+     * the instructions
+     * @param s - string that is to be stripped
+     * @return String - trimmed string without comments
+     */
     private static String stripLineComment(String s) {
         int i = s.indexOf("//");
         if (i >= 0) {
@@ -269,44 +294,79 @@ public class S12_IL implements S12_IL_Interface {
         return s.trim();
     }
 
+    /**
+     * This is a helper function turns string into 8-bit binary int
+     * @param s - string that is to be converted to 8-bits binary
+     * @return int - masked for 8-bits
+     */
     private static int parseBin8(String s) {
         if (s.length() != 8) throw new IllegalArgumentException("PC must be 8-bit binary");
         return Integer.parseInt(s, 2) & 0xFF;
     }
 
+    /**
+     * This is a helper function turns string into 12-bit binary int
+     * @param s - string that is to be converted to 12-bits binary
+     * @return int - masked for 12-bits
+     */
     private static int parseBin12(String s) {
         if (s.length() != 12) throw new IllegalArgumentException("Word must be 12-bit binary");
         return Integer.parseInt(s, 2) & 0xFFF;
     }
 
+    /**
+     * This is a helper function turns string hex values into 8-bit binary
+     * @param s - string that is to be converted to 8-bits binary
+     * @return int - masked for 8-bits
+     */
     private static int parseHexByte(String s) {
         int v = Integer.parseInt(s, 16);
         if ((v & ~0xFF) != 0) throw new IllegalArgumentException("Address must be 8-bit hex");
         return v & 0xFF;
     }
 
+    /**
+     * This is a helper function 8-bit binary value and converts to a string of hex
+     * @param s - string that is to be converted to 8-bits binary
+     * @return String - to be printed and expressed as hex number
+     */
     private static String toHex8(int x) {
         return String.format("%02X", x & 0xFF);
     }
 
-    private static String toHex12(int x) {
-        return String.format("%03X", x & 0xFFF);
-    }
-
+    /**
+     * This is a helper function 8-bit binary value and converts to a string of bin
+     * @param s - string that is to be converted to 8-bits binary
+     * @return String - to be printed and expressed as bin number
+     */
     private static String toBin8(int x) {
         String s = Integer.toBinaryString(x & 0xFF);
         return "00000000".substring(s.length()) + s;
     }
 
+    /**
+     * This is a helper function 12-bit binary value and converts to a string of bin
+     * @param s - string that is to be converted to 12-bits binary
+     * @return String - to be printed and expressed as bin number
+     */
     private static String toBin12(int x) {
         String s = Integer.toBinaryString(x & 0xFFF);
         return "000000000000".substring(s.length()) + s;
     }
 
+    /**
+     * Test to see if word 12-bit is negative or has overrun 12 bits
+     * @param x - int to be tested
+     * @return boolean - is wrd neg
+     */
     private static boolean isNeg12(int x) {
         return (x & 0x800) != 0;
     }
 
+    /**
+     * Halted getter
+     * @return halted
+     */
     public boolean isHalted() { return halted; }
 
 }
