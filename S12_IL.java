@@ -138,69 +138,76 @@ public class S12_IL implements S12_IL_Interface {
         String mnem = null;                //This will hold + build a string for printing to files or stdout(debug)
 
         switch (opcode) {
-            case  0x0: //JMP X
+            case  0x0: {//JMP X
                 PC = addr;
                 mnem = String.format("JMP %02X", addr);
                 break;
-
-            case 0x1:  //JN X 
+            }
+            case 0x1:  {//JN X 
                 if (isNeg12(ACC)) {
                     PC = addr;
                     mnem = String.format("JN %2X", addr);
                 }
                 break;
-
-            case  0x2:  //JZ X
+            }
+            case  0x2:  {//JZ X
                 if ((ACC & 0xFFF) == 0) {
                     PC = addr;
                 }
                 mnem = String.format("JZ %02X", addr);
                 break;
-            
-            case  0x4:  //LOAD X
+            }
+            case  0x4:  {//LOAD X
                 ACC = mval & 0xFFF;
                 mnem = String.format("LOAD %2X", addr);
                 break;
-
-            case  0x5:  //STORE X
+            }
+            case  0x5: {//STORE X
                 mem[addr] = ACC & 0xFFF;
                 mnem = String.format("STORE %2X", addr);
                 break;
-
-            case  0x6://STORI 
+            }
+            case  0x6: {//LOADI 
+                int indir = mem[addr] & 0xFF;
+                ACC = mem[indir] & 0xFFF;
+                mnem = String.format("LOADI (%2X)->%02X", addr, indir);
+                break;
+            }
+            case  0x7: {//STOREI
                 int indir = mem[addr] & 0xFF;
                 mem[indir] = ACC & 0xFFF;
-                mnem = String.format("STORI (%2X)->%02X", addr, indir);
+                mnem = String.format("STOREI %02X->%02X", addr, indir);
                 break;
-
-            case  0x8://AND X
+            }
+            case  0x8: {//AND X
                 ACC = (ACC & mval) & 0xFFF;
                 mnem = String.format("AND %02X", addr);
                 break;
-            
-            case  0x9://OR X
+            }
+            case  0x9: {//OR X
                 ACC = (ACC | mval) & 0xFFF;
                 mnem = String.format("OR %02X", addr);
                 break;
-
-            case  0xA://ADD X
+            }
+            case  0xA: {//ADD X
                 ACC = (ACC + mval) & 0xFFF;
                 mnem = String.format("ADD %02X", addr);
                 break;
-
-            case  0xB://SUB X
+            }
+            case  0xB: {//SUB X
                 ACC = (ACC - mval) & 0xFFF;
                 mnem = String.format("SUB %02X", addr);
                 break;
-
-            case 0xF://HALT
+            }
+            case 0xF: {//HALT
                 halted = true;
                 mnem = "HALT";
                 break;
-
-            default:
+            }
+            default: {
                 mnem = String.format("NOP(?) opcode=%X", opcode);
                 break;
+            }
         }
 
         COUNT++;
